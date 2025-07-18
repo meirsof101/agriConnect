@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Cloud, Sun, CloudRain, CloudSnow, Wind, Thermometer, Droplets, Eye, AlertTriangle, MapPin, Calendar, TrendingUp, Sprout, Tractor } from 'lucide-react';
 
-const FarmerWeatherComponent = () => {
+const Weather = () => {
   const [currentWeather, setCurrentWeather] = useState(null);
   const [forecast, setForecast] = useState([]);
   const [location, setLocation] = useState('');
@@ -467,4 +467,4 @@ const FarmerWeatherComponent = () => {
   );
 };
 
-export default FarmerWeatherComponent;
+export default Weather;

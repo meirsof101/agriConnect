@@ -9,9 +9,9 @@ import Sidebar from './components/layout/Sidebar';
 import Dashboard from './components/dashboard/Dashboard';
 import FarmManagement from './components/farms/FarmManagement';
 import FarmerNetwork from './components/network/FarmerNetwork';
-import MarketPrices from './components/market/MarketPlace';
+import MarketPlace from  './components/market/MarketPlace';
 import PestManagement from './components/pest/PestManagement';
-// import Weather from './components/weather/Weather';
+import Weather from './components/weather/Weather';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
 const FarmManagementPlatform = () => {
@@ -131,8 +131,10 @@ const createFarm = async (farmData) => {
             fetchDashboardStats={fetchDashboardStats}
           />
         );
+      case 'weather':
+        return <Weather />;
       case 'market':
-        return <MarketPrices marketPrices={marketPrices} />;
+        return <MarketPlace prices={marketPrices} />;
       case 'network':
         return <FarmerNetwork currentPage={currentPage} />;
       case 'pest':
