@@ -8,9 +8,10 @@ import Navigation from './components/layout/Navigation';
 import Sidebar from './components/layout/Sidebar';
 import Dashboard from './components/dashboard/Dashboard';
 import FarmManagement from './components/farms/FarmManagement';
-import MarketPrices from './components/market/MarketPrices';
 import FarmerNetwork from './components/network/FarmerNetwork';
+import MarketPrices from './components/market/MarketPlace';
 import PestManagement from './components/pest/PestManagement';
+// import Weather from './components/weather/Weather';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
 const FarmManagementPlatform = () => {

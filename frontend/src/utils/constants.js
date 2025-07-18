@@ -30,7 +30,8 @@ export const SORT_OPTIONS = [
 export const NAVIGATION_ITEMS = [
   { key: 'dashboard', label: 'Dashboard', icon: '📊' },
   { key: 'farms', label: 'Farm Management', icon: '🏭' },
-  { key: 'market', label: 'Market Prices', icon: '💰' },
+  { key: 'market', label: 'Market Place', icon: '🛒' },
   { key: 'network', label: 'Farmer Network', icon: '👥' },
+  { key: 'weather', label: 'Weather Forecast', icon: '☀️' },
   { key: 'pest', label: 'Pest Management', icon: '🐛' }
 ];
