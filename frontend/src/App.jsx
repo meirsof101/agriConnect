@@ -5,14 +5,14 @@ import api from './services/api';
 // Component imports
 import AuthForm from './components/auth/AuthForm';
 import Navigation from './components/layout/Navigation';
-import Sidebar from './components/layout/Sidebar';
 import Dashboard from './components/dashboard/Dashboard';
 import FarmManagement from './components/farms/FarmManagement';
 import FarmerNetwork from './components/network/FarmerNetwork';
-import MarketPlace from  './components/market/MarketPlace';
+import MarketPlace from './components/market/MarketPlace';
 import PestManagement from './components/pest/PestManagement';
 import Weather from './components/weather/Weather';
 import LoadingSpinner from './components/common/LoadingSpinner';
+import Footer from './components/layout/Footer';
 
 const FarmManagementPlatform = () => {
   const { user, token, login, register, logout, loading: authLoading } = useAuth();
@@ -83,21 +83,58 @@ const FarmManagementPlatform = () => {
     }
   };
 
-const createFarm = async (farmData) => {
-  try {
-    const token = localStorage.getItem('token'); // Or from context if using AuthContext
-    const response = await api.post('/farms', farmData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    setFarms([...farms, response.data]);
-    return response.data;
-  } catch (error) {
-    console.error('Create farm error:', error.response?.data || error.message);
-    throw error;
-  }
-};
+  const createFarm = async (farmData) => {
+    try {
+      // Check if we have a token
+      if (!token) {
+        throw new Error('Please log in again');
+      }
+
+      // Make the API call
+      const response = await api.post('/farms', farmData);
+      
+      // Update the farms list
+      setFarms(prevFarms => [...prevFarms, response.data]);
+      
+      // Return success structure
+      return {
+        success: true,
+        data: response.data
+      };
+      
+    } catch (error) {
+      // Handle specific error cases
+      if (error.response?.status === 401) {
+        logout();
+        return {
+          success: false,
+          error: 'Session expired. Please log in again.'
+        };
+      }
+      
+      if (error.response?.status === 400) {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Invalid farm data';
+        return {
+          success: false,
+          error: errorMessage
+        };
+      }
+      
+      if (error.response?.status === 500) {
+        return {
+          success: false,
+          error: 'Server error. Please try again in a moment.'
+        };
+      }
+      
+      // Generic error
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+      return {
+        success: false,
+        error: errorMessage
+      };
+    }
+  };
 
   const handleAuthSuccess = async () => {
     await fetchUserData();
@@ -114,6 +151,11 @@ const createFarm = async (farmData) => {
     setDashboardStats({});
   };
 
+  // Handler for page navigation - this was missing!
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
@@ -127,8 +169,8 @@ const createFarm = async (farmData) => {
         return (
           <FarmManagement 
             farms={farms}
-            createFarm={createFarm}
-            fetchDashboardStats={fetchDashboardStats}
+            onCreateFarm={createFarm}
+            onFetchDashboardStats={fetchDashboardStats}
           />
         );
       case 'weather':
@@ -146,11 +188,13 @@ const createFarm = async (farmData) => {
             fetchDashboardStats={fetchDashboardStats}
           />
         );
+      
       default:
         return (
           <Dashboard 
             dashboardStats={dashboardStats}
             pestReports={pestReports}
+            onNavigate={handlePageChange}
           />
         );
     }
@@ -172,9 +216,14 @@ const createFarm = async (farmData) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation user={user} onLogout={handleLogout} />
+      <Navigation 
+        user={user} 
+        onLogout={handleLogout}
+        currentPage={currentPage}
+        onPageChange={handlePageChange} // ← Fixed: Added the missing onPageChange prop
+      />
       <div className="flex">
-        <Sidebar currentPage={currentPage} onPageChange={setCurrentPage} />
+        {/* Removed the Sidebar component that was causing the undefined error */}
         <div className="flex-1 p-6">
           {loading ? (
             <LoadingSpinner />
@@ -190,6 +239,7 @@ const createFarm = async (farmData) => {
           )}
         </div>
       </div>
+      <Footer />
     </div>
   );
 };
