@@ -21,7 +21,7 @@ app.use(cors({
 app.use(express.json());
 
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/farm-management');
+mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://fidelmwaro:Ef1c7Q07w31ulv8l@farmreach.auxrqn8.mongodb.net/?retryWrites=true&w=majority&appName=farmreach');
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
