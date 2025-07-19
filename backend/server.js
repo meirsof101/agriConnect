@@ -2,7 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs'); // CHANGED: from 'bcrypt' to 'bcryptjs'
 const mongoose = require('mongoose');
 const axios = require('axios');
 const cron = require('node-cron');
@@ -17,6 +17,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 app.use(cors());
 app.use(express.json());
 app.use('/api/market', marketRoutes);
+
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/farm-management', {
   useNewUrlParser: true,
@@ -454,7 +455,8 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+// CHANGED: Updated listen call to bind to all interfaces for Render
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Database connected to MongoDB`);
   console.log(`Market data updates every hour`);
