@@ -6,7 +6,7 @@ const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const axios = require('axios');
 const cron = require('node-cron');
-const marketRoutes = require('./src/routes/market');
+// const marketRoutes = require('./src/routes/market');
 require('dotenv').config();
 
 const app = express();
@@ -33,7 +33,7 @@ app.use(express.json());
 // Add preflight handling
 app.options('*', cors(corsOptions));
 
-app.use('/api/market', marketRoutes);
+// app.use('/api/market', marketRoutes);
 
 // MongoDB connection - remove deprecated options
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/farm-management');
