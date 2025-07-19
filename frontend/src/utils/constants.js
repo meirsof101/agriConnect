@@ -1,5 +1,5 @@
 // utils/constants.js
-export const API_BASE_URL = 'http://localhost:5000/api';
+export const API_BASE_URL = 'https://farmreach.onrender.com/api'; // Update with your backend API URL
 
 export const FARM_TYPES = [
   { value: 'crop', label: 'Crop Farm' },
