@@ -38,6 +38,15 @@ const Dashboard = ({ dashboardStats, pestReports, onNavigate }) => {
     }
   };
 
+  // Handle navigation with fallback
+  const handleNavigation = (page) => {
+    if (onNavigate && typeof onNavigate === 'function') {
+      onNavigate(page);
+    } else {
+      console.log(`Navigation to ${page} requested but onNavigate not available`);
+    }
+  };
+
   return (
     <div className="min-h-screen relative p-6">
       {/* Background Image with Overlay */}
@@ -59,15 +68,15 @@ const Dashboard = ({ dashboardStats, pestReports, onNavigate }) => {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent mb-2">
-          Farm Dashboard
+          Welcome back! Here's what's happening today.
         </h1>
-        <p className="text-gray-600">Welcome back! Here's what's happening on your farms today.</p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Total Farms */}
-        <div className="group relative bg-white/90 backdrop-blur-md border border-white/30 rounded-2xl p-6 hover:shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 hover:-translate-y-1">
+        <div className="group relative bg-white/90 backdrop-blur-md border border-white/30 rounded-2xl p-6 hover:shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+             onClick={() => handleNavigation('farms')}>
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
@@ -84,7 +93,8 @@ const Dashboard = ({ dashboardStats, pestReports, onNavigate }) => {
         </div>
 
         {/* Active Crops */}
-        <div className="group relative bg-white/90 backdrop-blur-md border border-white/30 rounded-2xl p-6 hover:shadow-2xl hover:shadow-green-500/20 transition-all duration-300 hover:-translate-y-1">
+        <div className="group relative bg-white/90 backdrop-blur-md border border-white/30 rounded-2xl p-6 hover:shadow-2xl hover:shadow-green-500/20 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+             onClick={() => handleNavigation('farms')}>
           <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
@@ -101,7 +111,8 @@ const Dashboard = ({ dashboardStats, pestReports, onNavigate }) => {
         </div>
 
         {/* Livestock */}
-        <div className="group relative bg-white/90 backdrop-blur-md border border-white/30 rounded-2xl p-6 hover:shadow-2xl hover:shadow-amber-500/20 transition-all duration-300 hover:-translate-y-1">
+        <div className="group relative bg-white/90 backdrop-blur-md border border-white/30 rounded-2xl p-6 hover:shadow-2xl hover:shadow-amber-500/20 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+             onClick={() => handleNavigation('farms')}>
           <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
@@ -118,7 +129,8 @@ const Dashboard = ({ dashboardStats, pestReports, onNavigate }) => {
         </div>
 
         {/* Active Issues */}
-        <div className="group relative bg-white/90 backdrop-blur-md border border-white/30 rounded-2xl p-6 hover:shadow-2xl hover:shadow-red-500/20 transition-all duration-300 hover:-translate-y-1">
+        <div className="group relative bg-white/90 backdrop-blur-md border border-white/30 rounded-2xl p-6 hover:shadow-2xl hover:shadow-red-500/20 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+             onClick={() => handleNavigation('pest')}>
           <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
@@ -141,7 +153,12 @@ const Dashboard = ({ dashboardStats, pestReports, onNavigate }) => {
         <div className="lg:col-span-2 bg-white/90 backdrop-blur-md border border-white/30 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-semibold text-gray-900">Recent Activities</h3>
-            <button className="text-blue-600 hover:text-blue-700 text-sm font-medium hover:bg-blue-50/80 px-3 py-1 rounded-lg transition-all">View All</button>
+            <button 
+              onClick={() => handleNavigation('pest')}
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium hover:bg-blue-50/80 px-3 py-1 rounded-lg transition-all"
+            >
+              View All
+            </button>
           </div>
           <div className="space-y-4">
             {recentActivities.slice(0, 5).map((activity, index) => (
@@ -169,19 +186,31 @@ const Dashboard = ({ dashboardStats, pestReports, onNavigate }) => {
         <div className="bg-white/90 backdrop-blur-md border border-white/30 rounded-2xl p-6">
           <h3 className="text-xl font-semibold text-gray-900 mb-6">Quick Actions</h3>
           <div className="space-y-4">
-            <button className="w-full flex items-center space-x-3 p-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all duration-200 hover:shadow-xl hover:shadow-green-500/25">
+            <button 
+              onClick={() => handleNavigation('farms')}
+              className="w-full flex items-center space-x-3 p-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all duration-200 hover:shadow-xl hover:shadow-green-500/25"
+            >
               <span className="text-xl">➕</span>
               <span className="font-medium">Add New Farm</span>
             </button>
-            <button className="w-full flex items-center space-x-3 p-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/25">
+            <button 
+              onClick={() => handleNavigation('farms')}
+              className="w-full flex items-center space-x-3 p-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/25"
+            >
               <span className="text-xl">📊</span>
               <span className="font-medium">View Analytics</span>
             </button>
-            <button className="w-full flex items-center space-x-3 p-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all duration-200 hover:shadow-xl hover:shadow-purple-500/25">
+            <button 
+              onClick={() => handleNavigation('weather')}
+              className="w-full flex items-center space-x-3 p-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all duration-200 hover:shadow-xl hover:shadow-purple-500/25"
+            >
               <span className="text-xl">🌦️</span>
               <span className="font-medium">Weather Report</span>
             </button>
-            <button className="w-full flex items-center space-x-3 p-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-200 hover:shadow-xl hover:shadow-amber-500/25">
+            <button 
+              onClick={() => handleNavigation('market')}
+              className="w-full flex items-center space-x-3 p-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-200 hover:shadow-xl hover:shadow-amber-500/25"
+            >
               <span className="text-xl">🛒</span>
               <span className="font-medium">Marketplace</span>
             </button>
@@ -192,4 +221,5 @@ const Dashboard = ({ dashboardStats, pestReports, onNavigate }) => {
   </div>  
   );
 };
+
 export default Dashboard;

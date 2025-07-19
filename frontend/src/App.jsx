@@ -156,49 +156,50 @@ const FarmManagementPlatform = () => {
     setCurrentPage(page);
   };
 
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'dashboard':
-        return (
-          <Dashboard 
-            dashboardStats={dashboardStats}
-            pestReports={pestReports}
-          />
-        );
-      case 'farms':
-        return (
-          <FarmManagement 
-            farms={farms}
-            onCreateFarm={createFarm}
-            onFetchDashboardStats={fetchDashboardStats}
-          />
-        );
-      case 'weather':
-        return <Weather />;
-      case 'market':
-        return <MarketPlace prices={marketPrices} />;
-      case 'network':
-        return <FarmerNetwork currentPage={currentPage} />;
-      case 'pest':
-        return (
-          <PestManagement 
-            pestReports={pestReports}
-            setPestReports={setPestReports}
-            farms={farms}
-            fetchDashboardStats={fetchDashboardStats}
-          />
-        );
-      
-      default:
-        return (
-          <Dashboard 
-            dashboardStats={dashboardStats}
-            pestReports={pestReports}
-            onNavigate={handlePageChange}
-          />
-        );
-    }
-  };
+const renderPage = () => {
+  switch (currentPage) {
+    case 'dashboard':
+      return (
+        <Dashboard 
+          dashboardStats={dashboardStats}
+          pestReports={pestReports}
+          onNavigate={handlePageChange}  // Add this line!
+        />
+      );
+    case 'farms':
+      return (
+        <FarmManagement 
+          farms={farms}
+          onCreateFarm={createFarm}
+          onFetchDashboardStats={fetchDashboardStats}
+        />
+      );
+    case 'weather':
+      return <Weather />;
+    case 'market':  // Note: matches your component case
+      return <MarketPlace prices={marketPrices} />;
+    case 'network':
+      return <FarmerNetwork currentPage={currentPage} />;
+    case 'pest':  // Note: matches your component case
+      return (
+        <PestManagement 
+          pestReports={pestReports}
+          setPestReports={setPestReports}
+          farms={farms}
+          fetchDashboardStats={fetchDashboardStats}
+        />
+      );
+    
+    default:
+      return (
+        <Dashboard 
+          dashboardStats={dashboardStats}
+          pestReports={pestReports}
+          onNavigate={handlePageChange}
+        />
+      );
+  }
+};
 
   // Show auth form if not authenticated
   if (!token) {
