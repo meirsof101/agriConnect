@@ -2,7 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs'); // CHANGED: from 'bcrypt' to 'bcryptjs'
+const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const axios = require('axios');
 const cron = require('node-cron');
@@ -13,15 +13,35 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-// Middleware
-app.use(cors());
+// CORS configuration - specifically allow your Netlify frontend
+const corsOptions = {
+  origin: [
+    'https://farmreach.netlify.app',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:5000'
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
+
+// Add preflight handling
+app.options('*', cors(corsOptions));
+
 app.use('/api/market', marketRoutes);
 
-// MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/farm-management', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
+// MongoDB connection - remove deprecated options
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/farm-management');
+
+const db = mongoose.connection;
+db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+db.once('open', function() {
+  console.log('Database connected to MongoDB');
 });
 
 // User Schema
@@ -29,203 +49,67 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   name: { type: String, required: true },
-  location: { type: String, required: true },
-  phone: String,
-  experience: String,
-  specialization: [String],
-  connections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  createdAt: { type: Date, default: Date.now }
-});
+  farmDetails: {
+    name: String,
+    location: String,
+    size: Number,
+    crops: [String]
+  }
+}, { timestamps: true });
 
-// Farm Schema
-const farmSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  name: { type: String, required: true },
-  location: { type: String, required: true },
-  size: { type: Number, required: true },
-  type: { type: String, required: true },
-  coordinates: {
-    lat: Number,
-    lng: Number
-  },
-  createdAt: { type: Date, default: Date.now }
-});
-
-// Crop Schema
-const cropSchema = new mongoose.Schema({
-  farmId: { type: mongoose.Schema.Types.ObjectId, ref: 'Farm', required: true },
-  name: { type: String, required: true },
-  variety: String,
-  plantingDate: Date,
-  expectedHarvest: Date,
-  area: Number,
-  status: { type: String, enum: ['planted', 'growing', 'harvested'], default: 'planted' },
-  createdAt: { type: Date, default: Date.now }
-});
-
-// Livestock Schema
-const livestockSchema = new mongoose.Schema({
-  farmId: { type: mongoose.Schema.Types.ObjectId, ref: 'Farm', required: true },
-  type: { type: String, required: true },
-  breed: String,
-  count: { type: Number, required: true },
-  healthStatus: { type: String, default: 'healthy' },
-  lastVaccination: Date,
-  createdAt: { type: Date, default: Date.now }
-});
+const User = mongoose.model('User', userSchema);
 
 // Market Price Schema
 const marketPriceSchema = new mongoose.Schema({
-  commodity: { type: String, required: true },
+  crop: { type: String, required: true },
   price: { type: Number, required: true },
   unit: { type: String, required: true },
-  market: String,
-  location: String,
-  date: { type: Date, default: Date.now },
-  source: String
-});
+  market: { type: String, required: true },
+  date: { type: Date, default: Date.now }
+}, { timestamps: true });
 
-// Pest Report Schema
-const pestReportSchema = new mongoose.Schema({
-  farmId: { type: mongoose.Schema.Types.ObjectId, ref: 'Farm', required: true },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  pestType: { type: String, required: true },
-  cropAffected: String,
-  severity: { type: String, enum: ['low', 'medium', 'high'], required: true },
-  symptoms: String,
-  location: String,
-  treatment: String,
-  status: { type: String, enum: ['reported', 'treating', 'resolved'], default: 'reported' },
-  createdAt: { type: Date, default: Date.now }
-});
-
-// Models
-const User = mongoose.model('User', userSchema);
-const Farm = mongoose.model('Farm', farmSchema);
-const Crop = mongoose.model('Crop', cropSchema);
-const Livestock = mongoose.model('Livestock', livestockSchema);
 const MarketPrice = mongoose.model('MarketPrice', marketPriceSchema);
-const PestReport = mongoose.model('PestReport', pestReportSchema);
 
-// Auth middleware
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  
-  if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
-  }
-  
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid token' });
-    }
-    req.user = user;
-    next();
-  });
-};
-
-// Real Market Data Fetcher (using multiple APIs)
-async function fetchRealMarketData() {
-  try {
-    // Kenya Agricultural Commodities Exchange (KACE) simulation
-    // In real implementation, you'd use actual APIs
-    const commodities = [
-      { name: 'Maize', price: 3500, unit: 'KES/90kg bag' },
-      { name: 'Wheat', price: 4200, unit: 'KES/90kg bag' },
-      { name: 'Rice', price: 6800, unit: 'KES/90kg bag' },
-      { name: 'Beans', price: 8500, unit: 'KES/90kg bag' },
-      { name: 'Coffee', price: 450, unit: 'KES/kg' },
-      { name: 'Tea', price: 280, unit: 'KES/kg' },
-      { name: 'Sugar', price: 120, unit: 'KES/kg' },
-      { name: 'Milk', price: 55, unit: 'KES/liter' },
-      { name: 'Tomatoes', price: 80, unit: 'KES/kg' },
-      { name: 'Onions', price: 60, unit: 'KES/kg' }
-    ];
-
-    // Add price variations (+/- 10%)
-    for (const commodity of commodities) {
-      const variation = (Math.random() - 0.5) * 0.2; // +/- 10%
-      const newPrice = commodity.price * (1 + variation);
-      
-      await MarketPrice.create({
-        commodity: commodity.name,
-        price: Math.round(newPrice),
-        unit: commodity.unit,
-        market: 'Nairobi Agricultural Exchange',
-        location: 'Nairobi, Kenya',
-        source: 'KACE'
-      });
-    }
-    
-    console.log('Market data updated successfully');
-  } catch (error) {
-    console.error('Error fetching market data:', error);
-  }
-}
-
-// Weather API integration
-async function getWeatherData(location) {
-  try {
-    // Using OpenWeatherMap API (free tier)
-    const apiKey = 'your-openweather-api-key'; // Get from openweathermap.org
-    const response = await axios.get(
-      `https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${apiKey}&units=metric`
-    );
-    return response.data;
-  } catch (error) {
-    console.error('Weather API error:', error);
-    return null;
-  }
-}
-
-// Scheduled task to update market prices every hour
-cron.schedule('0 * * * *', () => {
-  console.log('Updating market prices...');
-  fetchRealMarketData();
-});
-
-// Initialize market data on startup
-fetchRealMarketData();
-
-// AUTH ROUTES
+// Auth Routes
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { email, password, name, location, phone, experience, specialization } = req.body;
+    const { email, password, name, farmDetails } = req.body;
     
+    // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ error: 'Email already registered' });
+      return res.status(400).json({ message: 'User already exists' });
     }
     
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Hash password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
     
+    // Create user
     const user = new User({
       email,
       password: hashedPassword,
       name,
-      location,
-      phone,
-      experience,
-      specialization: specialization || []
+      farmDetails
     });
     
     await user.save();
     
-    const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET);
+    // Create token
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
     
     res.status(201).json({
-      message: 'User registered successfully',
       token,
       user: {
         id: user._id,
         email: user.email,
         name: user.name,
-        location: user.location
+        farmDetails: user.farmDetails
       }
     });
   } catch (error) {
-    res.status(500).json({ error: 'Registration failed' });
+    console.error('Registration error:', error);
+    res.status(500).json({ message: 'Server error during registration' });
   }
 });
 
@@ -233,231 +117,137 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
+    console.log('Login attempt for:', email); // Debug log
+    
+    // Find user
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      console.log('User not found:', email);
+      return res.status(400).json({ message: 'Invalid credentials' });
     }
     
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+    // Check password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      console.log('Password mismatch for:', email);
+      return res.status(400).json({ message: 'Invalid credentials' });
     }
     
-    const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET);
+    // Create token
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+    
+    console.log('Login successful for:', email);
     
     res.json({
-      message: 'Login successful',
       token,
       user: {
         id: user._id,
         email: user.email,
         name: user.name,
-        location: user.location
+        farmDetails: user.farmDetails
       }
     });
   } catch (error) {
-    res.status(500).json({ error: 'Login failed' });
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error during login' });
   }
 });
 
-// FARM ROUTES
-app.post('/api/farms', authenticateToken, async (req, res) => {
+// Auth middleware
+const auth = async (req, res, next) => {
   try {
-    const farm = new Farm({
-      ...req.body,
-      userId: req.user.userId
-    });
-    await farm.save();
-    res.status(201).json(farm);
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ message: 'No token, authorization denied' });
+    }
+    
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId).select('-password');
+    
+    if (!user) {
+      return res.status(401).json({ message: 'Token is not valid' });
+    }
+    
+    req.user = user;
+    next();
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create farm' });
+    res.status(401).json({ message: 'Token is not valid' });
   }
+};
+
+// Protected route example
+app.get('/api/auth/me', auth, async (req, res) => {
+  res.json(req.user);
 });
 
-app.get('/api/farms', authenticateToken, async (req, res) => {
+// Market data fetching function
+async function fetchMarketData() {
   try {
-    const farms = await Farm.find({ userId: req.user.userId });
-    res.json(farms);
+    console.log('Fetching market data...');
+    
+    // Sample market data - replace with actual API calls
+    const sampleData = [
+      { crop: 'Wheat', price: 250, unit: 'per quintal', market: 'Delhi Mandi' },
+      { crop: 'Rice', price: 180, unit: 'per quintal', market: 'Punjab Mandi' },
+      { crop: 'Corn', price: 160, unit: 'per quintal', market: 'UP Mandi' },
+      { crop: 'Tomato', price: 30, unit: 'per kg', market: 'Bangalore Market' },
+      { crop: 'Onion', price: 25, unit: 'per kg', market: 'Mumbai Market' }
+    ];
+    
+    // Insert sample data with timeout handling
+    for (const data of sampleData) {
+      try {
+        await MarketPrice.findOneAndUpdate(
+          { crop: data.crop, market: data.market },
+          { ...data, date: new Date() },
+          { upsert: true, timeout: 30000 } // 30 second timeout
+        );
+      } catch (error) {
+        console.log(`Failed to update ${data.crop} price:`, error.message);
+      }
+    }
+    
+    console.log('Market data updated successfully');
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch farms' });
+    console.error('Error fetching market data:', error.message);
   }
+}
+
+// Schedule market data updates every hour
+cron.schedule('0 * * * *', fetchMarketData);
+
+// Fetch market data on server start
+fetchMarketData();
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// CROP ROUTES
-app.post('/api/crops', authenticateToken, async (req, res) => {
-  try {
-    const crop = new Crop(req.body);
-    await crop.save();
-    res.status(201).json(crop);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to create crop' });
-  }
-});
-
-app.get('/api/crops/:farmId', authenticateToken, async (req, res) => {
-  try {
-    const crops = await Crop.find({ farmId: req.params.farmId });
-    res.json(crops);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch crops' });
-  }
-});
-
-// LIVESTOCK ROUTES
-app.post('/api/livestock', authenticateToken, async (req, res) => {
-  try {
-    const livestock = new Livestock(req.body);
-    await livestock.save();
-    res.status(201).json(livestock);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to create livestock' });
-  }
-});
-
-app.get('/api/livestock/:farmId', authenticateToken, async (req, res) => {
-  try {
-    const livestock = await Livestock.find({ farmId: req.params.farmId });
-    res.json(livestock);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch livestock' });
-  }
-});
-
-// MARKET PRICE ROUTES
+// Get latest market prices
 app.get('/api/market-prices', async (req, res) => {
   try {
-    const prices = await MarketPrice.find()
-      .sort({ date: -1 })
+    const prices = await MarketPrice.find({})
+      .sort({ createdAt: -1 })
       .limit(50);
+    
     res.json(prices);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch market prices' });
+    console.error('Error fetching market prices:', error);
+    res.status(500).json({ message: 'Error fetching market prices' });
   }
 });
 
-app.get('/api/market-prices/:commodity', async (req, res) => {
-  try {
-    const prices = await MarketPrice.find({ 
-      commodity: new RegExp(req.params.commodity, 'i') 
-    })
-    .sort({ date: -1 })
-    .limit(10);
-    res.json(prices);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch commodity prices' });
-  }
+// Error handling middleware
+app.use((error, req, res, next) => {
+  console.error('Unhandled error:', error);
+  res.status(500).json({ message: 'Internal server error' });
 });
 
-// FARMER NETWORKING ROUTES
-app.get('/api/farmers', authenticateToken, async (req, res) => {
-  try {
-    const { search, location, specialization } = req.query;
-    let query = { _id: { $ne: req.user.userId } };
-    
-    if (search) {
-      query.name = new RegExp(search, 'i');
-    }
-    if (location) {
-      query.location = new RegExp(location, 'i');
-    }
-    if (specialization) {
-      query.specialization = { $in: [specialization] };
-    }
-    
-    const farmers = await User.find(query)
-      .select('-password')
-      .limit(20);
-    
-    res.json(farmers);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch farmers' });
-  }
-});
-
-app.post('/api/farmers/:farmerId/connect', authenticateToken, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.userId);
-    const targetFarmer = await User.findById(req.params.farmerId);
-    
-    if (!targetFarmer) {
-      return res.status(404).json({ error: 'Farmer not found' });
-    }
-    
-    if (!user.connections.includes(req.params.farmerId)) {
-      user.connections.push(req.params.farmerId);
-      await user.save();
-    }
-    
-    res.json({ message: 'Connected successfully' });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to connect with farmer' });
-  }
-});
-
-// PEST REPORT ROUTES
-app.post('/api/pest-reports', authenticateToken, async (req, res) => {
-  try {
-    const pestReport = new PestReport({
-      ...req.body,
-      userId: req.user.userId
-    });
-    await pestReport.save();
-    res.status(201).json(pestReport);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to create pest report' });
-  }
-});
-
-app.get('/api/pest-reports', authenticateToken, async (req, res) => {
-  try {
-    const reports = await PestReport.find({ userId: req.user.userId })
-      .populate('farmId', 'name location')
-      .sort({ createdAt: -1 });
-    res.json(reports);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch pest reports' });
-  }
-});
-
-// WEATHER ROUTE
-app.get('/api/weather/:location', async (req, res) => {
-  try {
-    const weatherData = await getWeatherData(req.params.location);
-    res.json(weatherData);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch weather data' });
-  }
-});
-
-// DASHBOARD STATS
-app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
-  try {
-    const farmsCount = await Farm.countDocuments({ userId: req.user.userId });
-    const cropsCount = await Crop.countDocuments({ 
-      farmId: { $in: await Farm.find({ userId: req.user.userId }).distinct('_id') }
-    });
-    const livestockCount = await Livestock.countDocuments({ 
-      farmId: { $in: await Farm.find({ userId: req.user.userId }).distinct('_id') }
-    });
-    const activeIssues = await PestReport.countDocuments({ 
-      userId: req.user.userId,
-      status: { $ne: 'resolved' }
-    });
-    
-    res.json({
-      farms: farmsCount,
-      crops: cropsCount,
-      livestock: livestockCount,
-      activeIssues
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch dashboard stats' });
-  }
-});
-
-// CHANGED: Updated listen call to bind to all interfaces for Render
-app.listen(PORT, '0.0.0.0', () => {
+// Start server
+app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Database connected to MongoDB`);
-  console.log(`Market data updates every hour`);
 });
+
+console.log('Market data updates every hour');
