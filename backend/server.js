@@ -34,6 +34,10 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   name: { type: String, required: true },
+  location: String,
+  phone: String,
+  experience: String,
+  specialization: [String],
   farmDetails: {
     name: String,
     location: String,
@@ -58,7 +62,7 @@ const MarketPrice = mongoose.model('MarketPrice', marketPriceSchema);
 // Auth Routes
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { email, password, name, farmDetails } = req.body;
+    const { email, password, name, location, phone, experience, specialization } = req.body;
     
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -72,7 +76,10 @@ app.post('/api/auth/register', async (req, res) => {
       email,
       password: hashedPassword,
       name,
-      farmDetails
+      location,
+      phone,
+      experience,
+      specialization
     });
     
     await user.save();
@@ -85,7 +92,10 @@ app.post('/api/auth/register', async (req, res) => {
         id: user._id,
         email: user.email,
         name: user.name,
-        farmDetails: user.farmDetails
+        location: user.location,
+        phone: user.phone,
+        experience: user.experience,
+        specialization: user.specialization
       }
     });
   } catch (error) {
