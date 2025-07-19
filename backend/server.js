@@ -6,36 +6,21 @@ const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const axios = require('axios');
 const cron = require('node-cron');
-// const marketRoutes = require('./src/routes/market');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-// CORS configuration - specifically allow your Netlify frontend
-const corsOptions = {
-  origin: [
-    'https://farmreach.netlify.app',
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'http://localhost:5000'
-  ],
-  credentials: true,
-  optionsSuccessStatus: 200,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
+// Simple CORS fix - just allow your Netlify frontend
+app.use(cors({
+  origin: 'https://farmreach.netlify.app',
+  credentials: true
+}));
 
-app.use(cors(corsOptions));
 app.use(express.json());
 
-// Add preflight handling
-app.options('*', cors(corsOptions));
-
-// app.use('/api/market', marketRoutes);
-
-// MongoDB connection - remove deprecated options
+// MongoDB connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/farm-management');
 
 const db = mongoose.connection;
@@ -75,17 +60,14 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     const { email, password, name, farmDetails } = req.body;
     
-    // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
     
-    // Hash password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     
-    // Create user
     const user = new User({
       email,
       password: hashedPassword,
@@ -95,7 +77,6 @@ app.post('/api/auth/register', async (req, res) => {
     
     await user.save();
     
-    // Create token
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
     
     res.status(201).json({
@@ -117,26 +98,17 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    console.log('Login attempt for:', email); // Debug log
-    
-    // Find user
     const user = await User.findOne({ email });
     if (!user) {
-      console.log('User not found:', email);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
     
-    // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      console.log('Password mismatch for:', email);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
     
-    // Create token
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
-    
-    console.log('Login successful for:', email);
     
     res.json({
       token,
@@ -176,17 +148,13 @@ const auth = async (req, res, next) => {
   }
 };
 
-// Protected route example
 app.get('/api/auth/me', auth, async (req, res) => {
   res.json(req.user);
 });
 
-// Market data fetching function
+// Market data function
 async function fetchMarketData() {
   try {
-    console.log('Fetching market data...');
-    
-    // Sample market data - replace with actual API calls
     const sampleData = [
       { crop: 'Wheat', price: 250, unit: 'per quintal', market: 'Delhi Mandi' },
       { crop: 'Rice', price: 180, unit: 'per quintal', market: 'Punjab Mandi' },
@@ -195,13 +163,12 @@ async function fetchMarketData() {
       { crop: 'Onion', price: 25, unit: 'per kg', market: 'Mumbai Market' }
     ];
     
-    // Insert sample data with timeout handling
     for (const data of sampleData) {
       try {
         await MarketPrice.findOneAndUpdate(
           { crop: data.crop, market: data.market },
           { ...data, date: new Date() },
-          { upsert: true, timeout: 30000 } // 30 second timeout
+          { upsert: true }
         );
       } catch (error) {
         console.log(`Failed to update ${data.crop} price:`, error.message);
@@ -214,18 +181,13 @@ async function fetchMarketData() {
   }
 }
 
-// Schedule market data updates every hour
 cron.schedule('0 * * * *', fetchMarketData);
-
-// Fetch market data on server start
 fetchMarketData();
 
-// Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Get latest market prices
 app.get('/api/market-prices', async (req, res) => {
   try {
     const prices = await MarketPrice.find({})
@@ -239,15 +201,6 @@ app.get('/api/market-prices', async (req, res) => {
   }
 });
 
-// Error handling middleware
-app.use((error, req, res, next) => {
-  console.error('Unhandled error:', error);
-  res.status(500).json({ message: 'Internal server error' });
-});
-
-// Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-console.log('Market data updates every hour');
